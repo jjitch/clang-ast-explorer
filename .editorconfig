@@ -1,0 +1,4 @@
+root = true
+
+[*.{js,ts,jsx,tsx,json,css,scss,html,rs,toml}]
+end_of_line = lf
