@@ -1,9 +1,9 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
-    "formatter": {
-        "indentStyle": "space",
-        "indentWidth": 2,
-        "useEditorconfig": true,
-        "lineEnding": "lf"
-    }
+  "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "useEditorconfig": true,
+    "lineEnding": "lf"
+  }
 }
