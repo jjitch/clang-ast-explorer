@@ -1,10 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
 import react from "react";
-
-type FileInfo = {
-  sourceText: string;
-  fileName: string;
-};
+import { tauriInvoke } from "./backend/api";
+import type { FileInfo } from "./backend/interface";
 
 function App() {
   const [fileInfo, setFileInfo] = react.useState<FileInfo | null>(null);
@@ -30,7 +26,7 @@ function App() {
         type="button"
         onClick={() => {
           if (fileInfo) {
-            invoke("generate_ast", fileInfo)
+            tauriInvoke("submit_file", fileInfo)
               .then((response) => {
                 setInvokeResponse(String(response));
               })
