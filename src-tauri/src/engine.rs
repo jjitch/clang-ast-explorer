@@ -1,7 +1,6 @@
 #[derive(Debug)]
 pub enum ClangEngineError {
     InitializationError(String),
-    CreationError(String),
 }
 
 pub enum Msg {
@@ -23,7 +22,7 @@ impl ClangReceiver {
                                     Ok(msg) => match msg {
                                         Msg::CreateClang(sender) => {
                                             sender
-                                                .send(Err(ClangEngineError::CreationError(
+                                                .send(Err(ClangEngineError::InitializationError(
                                                     "Clang instance already created".into(),
                                                 )))
                                                 .unwrap();
@@ -34,7 +33,7 @@ impl ClangReceiver {
                             }
                         } else {
                             sender
-                                .send(Err(ClangEngineError::CreationError(
+                                .send(Err(ClangEngineError::InitializationError(
                                     "Failed to create Clang instance".into(),
                                 )))
                                 .unwrap();
