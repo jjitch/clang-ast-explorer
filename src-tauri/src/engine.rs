@@ -3,8 +3,10 @@ pub enum ClangEngineError {
     InitializationError(String),
 }
 
+type EngineCallResult<R> = Result<R, ClangEngineError>;
+
 pub enum Msg {
-    CreateClang(tokio::sync::oneshot::Sender<Result<(), ClangEngineError>>),
+    CreateClang(tokio::sync::oneshot::Sender<EngineCallResult<()>>),
 }
 
 struct ClangReceiver;
@@ -46,21 +48,30 @@ impl ClangReceiver {
     }
 }
 
-pub fn spawn_engine() -> std::sync::mpsc::Sender<Msg> {
+pub struct EngineHandle(std::sync::mpsc::Sender<Msg>);
+
+impl EngineHandle {
+    pub async fn call<F, R>(&self, f: F) -> EngineCallResult<R>
+    where
+        F: FnOnce(tokio::sync::oneshot::Sender<EngineCallResult<R>>) -> Msg + Send + 'static,
+    {
+        let (tx, rx) = tokio::sync::oneshot::channel::<EngineCallResult<R>>();
+        self.0.send(f(tx)).unwrap();
+        rx.await.unwrap()
+    }
+}
+
+pub fn spawn_engine() -> EngineHandle {
     let (tx, rx) = std::sync::mpsc::channel::<Msg>();
     std::thread::spawn(move || {
         ClangReceiver::receive(&rx);
     });
-    tx
+    EngineHandle(tx)
 }
 
-#[test]
-fn test_clang_engine_initialization() {
-    let tx = spawn_engine();
-
-    let (sender, receiver) = tokio::sync::oneshot::channel();
-    tx.send(Msg::CreateClang(sender)).unwrap();
-
-    let res = receiver.blocking_recv();
+#[tokio::test]
+async fn test_clang_engine_initialization() {
+    let engine = spawn_engine();
+    let res = engine.call(|tx| Msg::CreateClang(tx)).await;
     assert!(res.is_ok());
 }
