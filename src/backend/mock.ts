@@ -9,9 +9,7 @@ type TauriIF = {
 export const mock: TauriIF = {
   parse_source: (_args: { sourceCode: string }) => {
     return new Promise((resolve) => {
-      resolve({
-        diagnostics: "This is mock.",
-      });
+      resolve("This is mock.");
     });
   },
 };
