@@ -5,44 +5,67 @@ pub enum ClangEngineError {
 
 type EngineCallResult<R> = Result<R, ClangEngineError>;
 
+#[derive(Debug)]
+pub struct Diagnostic {
+    pub severity: String,
+    pub message: String,
+    pub file: String,
+    pub line: u32,
+    pub column: u32,
+}
+
 pub enum Msg {
-    CreateClang(tokio::sync::oneshot::Sender<EngineCallResult<()>>),
+    CompileSourceCode(
+        tokio::sync::oneshot::Sender<EngineCallResult<Vec<Diagnostic>>>,
+        std::path::PathBuf,
+    ),
 }
 
 struct ClangReceiver;
 
 impl ClangReceiver {
-    fn receive(rx: &std::sync::mpsc::Receiver<Msg>) {
+    fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
+        let clang = clang::Clang::new().map_err(ClangEngineError::InitializationError)?;
         loop {
             match rx.recv() {
                 Ok(msg) => match msg {
-                    Msg::CreateClang(sender) => {
-                        if let Ok(_c) = clang::Clang::new() {
-                            sender.send(Ok(())).unwrap();
-                            loop {
-                                match rx.recv() {
-                                    Ok(msg) => match msg {
-                                        Msg::CreateClang(sender) => {
-                                            sender
-                                                .send(Err(ClangEngineError::InitializationError(
-                                                    "Clang instance already created".into(),
-                                                )))
-                                                .unwrap();
-                                        }
-                                    },
-                                    Err(_) => break,
+                    Msg::CompileSourceCode(sender, path) => {
+                        let index = clang::Index::new(&clang, false, false);
+                        let tu = index
+                            .parser(&path)
+                            .arguments(&["-std=c++17"])
+                            .parse()
+                            .map_err(|e| {
+                                ClangEngineError::InitializationError(format!("{:?}", e))
+                            })?;
+                        let diagnostics: Vec<Diagnostic> = tu
+                            .get_diagnostics()
+                            .into_iter()
+                            .map(|diag| {
+                                let loc = diag.get_location().get_file_location();
+                                Diagnostic {
+                                    severity: format!("{:?}", diag.get_severity()),
+                                    message: diag.get_text(),
+                                    file: loc
+                                        .file
+                                        .unwrap()
+                                        .get_path()
+                                        .to_string_lossy()
+                                        .to_string(),
+                                    line: loc.line,
+                                    column: loc.column,
                                 }
-                            }
-                        } else {
-                            sender
-                                .send(Err(ClangEngineError::InitializationError(
-                                    "Failed to create Clang instance".into(),
-                                )))
-                                .unwrap();
-                        }
+                            })
+                            .collect();
+                        sender.send(Ok(diagnostics)).map_err(|e| {
+                            ClangEngineError::InitializationError(format!(
+                                "Failed to send diagnostics: {:?}",
+                                e
+                            ))
+                        })?;
                     }
                 },
-                Err(_) => break,
+                Err(_) => {}
             }
         }
     }
@@ -64,14 +87,9 @@ impl EngineHandle {
 pub fn spawn_engine() -> EngineHandle {
     let (tx, rx) = std::sync::mpsc::channel::<Msg>();
     std::thread::spawn(move || {
-        ClangReceiver::receive(&rx);
+        while let Err(e) = ClangReceiver::receive(&rx) {
+            eprintln!("Error receiving message: {:?}", e);
+        }
     });
     EngineHandle(tx)
-}
-
-#[tokio::test]
-async fn test_clang_engine_initialization() {
-    let engine = spawn_engine();
-    let res = engine.call(|tx| Msg::CreateClang(tx)).await;
-    assert!(res.is_ok());
 }
