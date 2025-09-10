@@ -1,4 +1,4 @@
-import type { FileInfo, TauriCommands } from "./interface";
+import type { TauriCommands } from "./interface";
 
 type TauriIF = {
   [K in keyof TauriCommands]: (
@@ -7,9 +7,11 @@ type TauriIF = {
 };
 
 export const mock: TauriIF = {
-  submit_file: (_args: FileInfo) => {
+  parse_source: (_args: { sourceCode: string }) => {
     return new Promise((resolve) => {
-      resolve("This is mock.");
+      resolve({
+        diagnostics: "This is mock.",
+      });
     });
   },
 };

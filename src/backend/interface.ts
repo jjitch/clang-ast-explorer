@@ -1,11 +1,14 @@
-export type FileInfo = {
-  sourceText: string;
-  fileName: string;
+export type ParseSourceArg = {
+  sourceCode: string;
+};
+
+export type ParseSourceReturn = {
+  diagnostics: string;
 };
 
 export type TauriCommands = {
-  submit_file: {
-    args: FileInfo;
-    return: string;
+  parse_source: {
+    args: ParseSourceArg;
+    return: ParseSourceReturn;
   };
 };

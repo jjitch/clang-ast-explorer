@@ -1,9 +1,9 @@
 import react from "react";
 import { tauriInvoke } from "./backend/api";
-import type { FileInfo } from "./backend/interface";
+import type { ParseSourceArg } from "./backend/interface";
 
 function App() {
-  const [fileInfo, setFileInfo] = react.useState<FileInfo | null>(null);
+  const [fileInfo, setFileInfo] = react.useState<ParseSourceArg | null>(null);
   const [invokeResponse, setInvokeResponse] = react.useState("");
 
   return (
@@ -12,11 +12,9 @@ function App() {
         type="file"
         onChange={(e) => {
           if (e.target.files && e.target.files.length > 0) {
-            const fileName = e.target.files[0].name;
             e.target.files[0].text().then((text) => {
               setFileInfo({
-                sourceText: text,
-                fileName: fileName,
+                sourceCode: text,
               });
             });
           }
@@ -26,7 +24,7 @@ function App() {
         type="button"
         onClick={() => {
           if (fileInfo) {
-            tauriInvoke("submit_file", fileInfo)
+            tauriInvoke("parse_source", fileInfo)
               .then((response) => {
                 setInvokeResponse(String(response));
               })
@@ -39,7 +37,7 @@ function App() {
         Process File
       </button>
       <p>{invokeResponse}</p>
-      <pre>{fileInfo?.sourceText}</pre>
+      <pre>{fileInfo?.sourceCode}</pre>
     </div>
   );
 }
