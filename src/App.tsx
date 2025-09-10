@@ -1,32 +1,21 @@
 import react from "react";
 import { tauriInvoke } from "./backend/api";
-import type { ParseSourceArg } from "./backend/interface";
+import { Editor, type EditorHandle } from "./Editor";
 
 function App() {
-  const [fileInfo, setFileInfo] = react.useState<ParseSourceArg | null>(null);
   const [invokeResponse, setInvokeResponse] = react.useState("");
+  const editorRef = react.useRef<EditorHandle>(null);
 
   return (
     <div>
-      <input
-        type="file"
-        onChange={(e) => {
-          if (e.target.files && e.target.files.length > 0) {
-            e.target.files[0].text().then((text) => {
-              setFileInfo({
-                sourceCode: text,
-              });
-            });
-          }
-        }}
-      />
       <button
         type="button"
         onClick={() => {
-          if (fileInfo) {
-            tauriInvoke("parse_source", fileInfo)
+          const value = editorRef.current?.getValue();
+          if (value) {
+            tauriInvoke("parse_source", { sourceCode: value })
               .then((response) => {
-                setInvokeResponse(String(response));
+                setInvokeResponse(response);
               })
               .catch((error) => {
                 setInvokeResponse(`Error: ${error}`);
@@ -37,7 +26,7 @@ function App() {
         Process File
       </button>
       <p>{invokeResponse}</p>
-      <pre>{fileInfo?.sourceCode}</pre>
+      <Editor ref={editorRef} />
     </div>
   );
 }
