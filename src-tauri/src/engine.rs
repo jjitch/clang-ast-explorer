@@ -15,7 +15,7 @@ pub struct Diagnostic {
 }
 
 pub enum Msg {
-    CompileSourceCode(
+    ParseSourceCode(
         tokio::sync::oneshot::Sender<EngineCallResult<Vec<Diagnostic>>>,
         std::path::PathBuf,
     ),
@@ -29,7 +29,7 @@ impl ClangReceiver {
         loop {
             match rx.recv() {
                 Ok(msg) => match msg {
-                    Msg::CompileSourceCode(sender, path) => {
+                    Msg::ParseSourceCode(sender, path) => {
                         let index = clang::Index::new(&clang, false, false);
                         let tu = index
                             .parser(&path)
