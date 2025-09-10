@@ -30,7 +30,7 @@ impl ClangReceiver {
             match rx.recv() {
                 Ok(msg) => match msg {
                     Msg::ParseSourceCode(sender, path) => {
-                        let index = clang::Index::new(&clang, false, false);
+                        let index = clang::Index::new(&clang, false, true);
                         let tu = index
                             .parser(&path)
                             .arguments(&["-std=c++17"])
