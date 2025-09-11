@@ -1,5 +1,5 @@
 use std::io::Write;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 #[tauri::command]
 pub async fn parse_source(
@@ -19,6 +19,18 @@ pub async fn parse_source(
         .await;
     match res {
         Ok(diagnostics) => {
+            match app_handle.emit_to(
+                tauri::EventTarget::WebviewWindow {
+                    label: "main".into(),
+                },
+                "ast-ready",
+                "<AST_NODE_HERE>",
+            ) {
+                Ok(_) => {
+                    println!("Emitted AST ready event to window");
+                }
+                Err(e) => eprintln!("Error emitting AST ready event to window: {:?}", e),
+            }
             let mut result = String::new();
             for diag in diagnostics {
                 result.push_str(&format!(
