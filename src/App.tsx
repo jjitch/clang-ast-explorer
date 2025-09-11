@@ -1,4 +1,5 @@
 import react from "react";
+import { AstExplorer } from "./AstExplorer";
 import { tauriInvoke } from "./backend/api";
 import { Editor, type EditorHandle } from "./Editor";
 
@@ -25,8 +26,10 @@ function App() {
       >
         Process File
       </button>
-      <p>{invokeResponse}</p>
-      <Editor ref={editorRef} />
+      <div style={{ display: "flex", gap: "20px" }}>
+        <Editor ref={editorRef} />
+        <AstExplorer />
+      </div>
     </div>
   );
 }
