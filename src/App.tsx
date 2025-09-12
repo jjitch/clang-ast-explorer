@@ -8,7 +8,15 @@ function App() {
   const editorRef = react.useRef<EditorHandle>(null);
 
   return (
-    <div>
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        padding: "10px",
+      }}
+    >
       <button
         type="button"
         onClick={() => {
@@ -26,7 +34,7 @@ function App() {
       >
         Process File
       </button>
-      <div style={{ display: "flex", gap: "20px" }}>
+      <div style={{ display: "flex", gap: "20px", height: "100%" }}>
         <Editor ref={editorRef} />
         <AstExplorer />
       </div>

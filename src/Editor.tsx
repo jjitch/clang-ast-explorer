@@ -32,5 +32,5 @@ export const Editor = forwardRef<EditorHandle>((_, ref) => {
     };
   }, []);
 
-  return <div ref={monacoEl} style={{ height: "50vh", width: "50vw" }} />;
+  return <div ref={monacoEl} style={{ height: "100%", width: "50vw" }} />;
 });
