@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { tauriInvoke } from "./backend/api";
-import { AstEntityLite } from "./backend/interface";
+import type { AstEntityLite } from "./backend/interface";
 
 export function AstNode({ node }: { node: AstEntityLite }) {
   const [revealedChildren, setRevealedChildren] = useState<
