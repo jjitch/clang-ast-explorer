@@ -15,11 +15,11 @@ pub struct Diagnostic {
 }
 
 #[derive(Debug, Clone)]
-pub struct EntityId(pub String);
+pub struct AstEntityId(pub String);
 
 pub enum Msg {
     ParseSourceCode(
-        tokio::sync::oneshot::Sender<EngineCallResult<EntityId>>,
+        tokio::sync::oneshot::Sender<EngineCallResult<AstEntityId>>,
         std::path::PathBuf,
     ),
 }
@@ -45,7 +45,7 @@ impl ClangReceiver {
                         let entity = tu.get_entity();
                         let new_id = uuid::Uuid::new_v4().to_string();
                         entity_store.insert(new_id.clone(), entity);
-                        sender.send(Ok(EntityId(new_id))).map_err(|e| {
+                        sender.send(Ok(AstEntityId(new_id))).map_err(|e| {
                             ClangEngineError::InitializationError(format!(
                                 "Failed to send entity ID: {:?}",
                                 e
