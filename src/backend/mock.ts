@@ -23,5 +23,9 @@ function emit<K extends keyof EventPayload>(
   event: K,
   payload: EventPayload[K],
 ) {
-  document.dispatchEvent(new CustomEvent(event, { detail: payload }));
+  document.dispatchEvent(
+    new CustomEvent<{ payload: EventPayload[K] }>(event, {
+      detail: { payload },
+    }),
+  );
 }
