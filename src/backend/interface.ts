@@ -9,6 +9,11 @@ export type TauriCommands = {
   };
 };
 
+export type AstEntityLite = {
+  id: string;
+  kind: string;
+};
+
 export type EventPayload = {
-  "ast-ready": string;
+  "ast-ready": AstEntityLite;
 };

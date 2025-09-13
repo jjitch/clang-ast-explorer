@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { tauriListen } from "./backend/api";
+import type { AstEntityLite } from "./backend/interface";
 
 type AstParsing = {
   id: "parsing";
@@ -11,7 +12,7 @@ type AstNotParsed = {
 
 type AstReady = {
   id: "ready";
-  rootEntityId: string;
+  entity: AstEntityLite;
 };
 
 type AstError = {
@@ -26,7 +27,7 @@ export function AstExplorer() {
   useEffect(() => {
     const unmount = tauriListen("ast-ready", (event) => {
       console.log("AST ready event received:", event);
-      setAstState({ id: "ready", rootEntityId: event.payload });
+      setAstState({ id: "ready", entity: event.payload });
     });
     return () => {
       unmount.then((fn) => fn());
@@ -38,7 +39,11 @@ export function AstExplorer() {
       {astState.id === "not-parsed" && <div>AST not started</div>}
       {astState.id === "parsing" && <div>Parsing AST...</div>}
       {astState.id === "ready" && (
-        <div>AST ready! Root entity ID: {astState.rootEntityId}</div>
+        <div>
+          <p>AST ready!</p>
+          <p>Entity ID: {astState.entity.id}</p>
+          <p>Entity Kind: {astState.entity.kind}</p>
+        </div>
       )}
       {astState.id === "error" && <div>Error: {astState.message}</div>}
       {astState.id !== "not-parsed" &&

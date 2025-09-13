@@ -12,8 +12,8 @@ export const mock: TauriIF = {
       console.log("Mocking parse_source...");
       setTimeout(() => {
         console.log("1 second passed, dispatching ast-ready event...");
-        emit("ast-ready", "This is mock AST data.");
-        resolve("This is mock parse source resolve.");
+        emit("ast-ready", { id: "mock-id", kind: "mock-kind" });
+        resolve(null);
       }, 1000);
     });
   },

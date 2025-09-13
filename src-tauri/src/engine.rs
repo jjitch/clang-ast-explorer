@@ -1,3 +1,5 @@
+use crate::interface::{AstEntityFull, AstEntityLite};
+
 #[derive(Debug)]
 pub enum ClangEngineError {
     InitializationError(String),
@@ -14,13 +16,14 @@ pub struct Diagnostic {
     pub column: u32,
 }
 
-#[derive(Debug, Clone)]
-pub struct AstEntityId(pub String);
-
 pub enum Msg {
     ParseSourceCode(
-        tokio::sync::oneshot::Sender<EngineCallResult<AstEntityId>>,
+        tokio::sync::oneshot::Sender<EngineCallResult<AstEntityLite>>,
         std::path::PathBuf,
+    ),
+    RevealEntity(
+        tokio::sync::oneshot::Sender<EngineCallResult<AstEntityFull>>,
+        String,
     ),
 }
 
@@ -33,26 +36,63 @@ impl ClangReceiver {
             let index = clang::Index::new(&clang, false, true);
             let mut entity_store = std::collections::HashMap::<String, clang::Entity<'_>>::new();
             match rx.recv() {
-                Ok(msg) => match msg {
-                    Msg::ParseSourceCode(sender, path) => {
-                        let tu = index
-                            .parser(&path)
-                            .arguments(&["-std=c++17"])
-                            .parse()
-                            .map_err(|e| {
-                                ClangEngineError::InitializationError(format!("{:?}", e))
-                            })?;
-                        let entity = tu.get_entity();
-                        let new_id = uuid::Uuid::new_v4().to_string();
-                        entity_store.insert(new_id.clone(), entity);
-                        sender.send(Ok(AstEntityId(new_id))).map_err(|e| {
+                Ok(Msg::ParseSourceCode(sender, path)) => {
+                    let tu = index
+                        .parser(&path)
+                        .arguments(&["-std=c++17"])
+                        .parse()
+                        .map_err(|e| ClangEngineError::InitializationError(format!("{:?}", e)))?;
+                    let entity = tu.get_entity();
+                    let new_id = uuid::Uuid::new_v4().to_string();
+                    entity_store.insert(new_id.clone(), entity);
+                    sender
+                        .send(Ok(AstEntityLite {
+                            id: new_id,
+                            kind: format!("{:?}", entity.get_kind()),
+                        }))
+                        .map_err(|e| {
                             ClangEngineError::InitializationError(format!(
                                 "Failed to send entity ID: {:?}",
                                 e
                             ))
                         })?;
+                }
+                Ok(Msg::RevealEntity(sender, entity_id)) => {
+                    if let Some(entity) = entity_store.get(&entity_id) {
+                        println!("Revealing entity: {:?}", entity);
+                        // Implement logic to reveal the entity in the UI if needed
+                        let children = entity
+                            .get_children()
+                            .iter()
+                            .map(|child| AstEntityLite {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                kind: format!("{:?}", child.get_kind()),
+                            })
+                            .collect::<Vec<_>>();
+                        sender
+                            .send(Ok(AstEntityFull {
+                                properties: vec![],
+                                children,
+                            }))
+                            .map_err(|e| {
+                                ClangEngineError::InitializationError(format!(
+                                    "Failed to send reveal confirmation: {:?}",
+                                    e
+                                ))
+                            })?;
+                    } else {
+                        sender
+                            .send(Err(ClangEngineError::InitializationError(
+                                "Entity not found".into(),
+                            )))
+                            .map_err(|e| {
+                                ClangEngineError::InitializationError(format!(
+                                    "Failed to send error: {:?}",
+                                    e
+                                ))
+                            })?;
                     }
-                },
+                }
                 Err(_) => {}
             }
         }
