@@ -8,3 +8,7 @@ export type TauriCommands = {
     return: string;
   };
 };
+
+export type EventPayload = {
+  "ast-ready": string;
+};

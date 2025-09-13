@@ -34,6 +34,7 @@ function App() {
       >
         Process File
       </button>
+      <div>Invoke response: {invokeResponse}</div>
       <div style={{ display: "flex", gap: "20px", height: "100%" }}>
         <Editor ref={editorRef} />
         <AstExplorer />

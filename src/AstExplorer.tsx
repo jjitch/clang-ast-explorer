@@ -1,12 +1,15 @@
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { useEffect } from "react";
+import { tauriListen } from "./backend/api";
 
 export function AstExplorer() {
-  const appWebview = getCurrentWebviewWindow();
-  appWebview.listen<string>("ast-ready", (event) => {
-    console.log("AST ready event received in AstExplorer");
-    console.log("Event:", event);
-  });
-
+  useEffect(() => {
+    const unmount = tauriListen("ast-ready", (event) => {
+      console.log("AST ready event received:", event);
+    });
+    return () => {
+      unmount.then((fn) => fn());
+    };
+  }, []);
   return (
     <div>
       <h1>AST Explorer</h1>
