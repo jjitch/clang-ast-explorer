@@ -5,7 +5,7 @@ export type ParseSourceArg = {
 export type TauriCommands = {
   parse_source: {
     args: ParseSourceArg;
-    return: string;
+    return: null;
   };
 };
 

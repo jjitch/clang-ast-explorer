@@ -18,12 +18,4 @@ int main() {
         .call(|tx| Msg::ParseSourceCode(tx, source_file))
         .await;
     assert!(res.is_ok());
-    let diagnostics = res.unwrap();
-    assert!(!diagnostics.is_empty());
-    for diag in diagnostics {
-        eprintln!(
-            "{}:{}: {}: {}",
-            diag.file, diag.line, diag.severity, diag.message
-        );
-    }
 }

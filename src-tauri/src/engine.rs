@@ -14,9 +14,12 @@ pub struct Diagnostic {
     pub column: u32,
 }
 
+#[derive(Debug, Clone)]
+pub struct EntityId(pub String);
+
 pub enum Msg {
     ParseSourceCode(
-        tokio::sync::oneshot::Sender<EngineCallResult<Vec<Diagnostic>>>,
+        tokio::sync::oneshot::Sender<EngineCallResult<EntityId>>,
         std::path::PathBuf,
     ),
 }
@@ -27,10 +30,11 @@ impl ClangReceiver {
     fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
         let clang = clang::Clang::new().map_err(ClangEngineError::InitializationError)?;
         loop {
+            let index = clang::Index::new(&clang, false, true);
+            let mut entity_store = std::collections::HashMap::<String, clang::Entity<'_>>::new();
             match rx.recv() {
                 Ok(msg) => match msg {
                     Msg::ParseSourceCode(sender, path) => {
-                        let index = clang::Index::new(&clang, false, true);
                         let tu = index
                             .parser(&path)
                             .arguments(&["-std=c++17"])
@@ -38,28 +42,12 @@ impl ClangReceiver {
                             .map_err(|e| {
                                 ClangEngineError::InitializationError(format!("{:?}", e))
                             })?;
-                        let diagnostics: Vec<Diagnostic> = tu
-                            .get_diagnostics()
-                            .into_iter()
-                            .map(|diag| {
-                                let loc = diag.get_location().get_file_location();
-                                Diagnostic {
-                                    severity: format!("{:?}", diag.get_severity()),
-                                    message: diag.get_text(),
-                                    file: loc
-                                        .file
-                                        .unwrap()
-                                        .get_path()
-                                        .to_string_lossy()
-                                        .to_string(),
-                                    line: loc.line,
-                                    column: loc.column,
-                                }
-                            })
-                            .collect();
-                        sender.send(Ok(diagnostics)).map_err(|e| {
+                        let entity = tu.get_entity();
+                        let new_id = uuid::Uuid::new_v4().to_string();
+                        entity_store.insert(new_id.clone(), entity);
+                        sender.send(Ok(EntityId(new_id))).map_err(|e| {
                             ClangEngineError::InitializationError(format!(
-                                "Failed to send diagnostics: {:?}",
+                                "Failed to send entity ID: {:?}",
                                 e
                             ))
                         })?;
