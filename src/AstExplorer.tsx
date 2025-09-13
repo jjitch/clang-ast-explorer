@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AstNode } from "./AstNode";
 import { tauriListen } from "./backend/api";
 import type { AstEntityLite } from "./backend/interface";
 
@@ -38,13 +39,7 @@ export function AstExplorer() {
       <h1>AST Explorer</h1>
       {astState.id === "not-parsed" && <div>AST not started</div>}
       {astState.id === "parsing" && <div>Parsing AST...</div>}
-      {astState.id === "ready" && (
-        <div>
-          <p>AST ready!</p>
-          <p>Entity ID: {astState.entity.id}</p>
-          <p>Entity Kind: {astState.entity.kind}</p>
-        </div>
-      )}
+      {astState.id === "ready" && <AstNode node={astState.entity} />}
       {astState.id === "error" && <div>Error: {astState.message}</div>}
       {astState.id !== "not-parsed" &&
         astState.id !== "parsing" &&
