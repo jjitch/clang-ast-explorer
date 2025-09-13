@@ -1,4 +1,4 @@
-import type { EventPayload, TauriCommands } from "./interface";
+import type { EventPayload, RevealEntityArg, TauriCommands } from "./interface";
 
 type TauriIF = {
   [K in keyof TauriCommands]: (
@@ -15,6 +15,17 @@ export const mock: TauriIF = {
         emit("ast-ready", { id: "mock-id", kind: "mock-kind" });
         resolve(null);
       }, 1000);
+    });
+  },
+  reveal_entity: (args: RevealEntityArg) => {
+    return new Promise((resolve) => {
+      console.log("Mocking reveal_entity...");
+      const id = args.entityId;
+      const children = [];
+      for (let i = 0; i < 3; i++) {
+        children.push({ id: `${id}/${i}`, kind: "mock-kind" });
+      }
+      resolve({ id, kind: "mock-kind", children });
     });
   },
 };

@@ -20,7 +20,10 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![command::parse_source])
+        .invoke_handler(tauri::generate_handler![
+            command::parse_source,
+            command::reveal_entity
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

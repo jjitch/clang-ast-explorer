@@ -36,3 +36,17 @@ pub async fn parse_source(
         Err(e) => Err(format!("Error parsing source code: {:?}", e)),
     }
 }
+
+#[tauri::command]
+pub async fn reveal_entity(
+    state: tauri::State<'_, crate::AppState>,
+    entity_id: String,
+) -> Result<crate::interface::AstEntityFull, String> {
+    let app_state = state.lock().await;
+    let entity = app_state
+        .engine_handle
+        .call(|tx| crate::engine::Msg::RevealEntity(tx, entity_id))
+        .await
+        .map_err(|e| format!("Error revealing entity: {:?}", e))?;
+    Ok(entity)
+}
