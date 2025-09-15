@@ -33,7 +33,7 @@ impl ClangReceiver {
     fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
         let clang = clang::Clang::new().map_err(ClangEngineError::InitializationError)?;
         loop {
-            let index = clang::Index::new(&clang, false, true);
+            let index = clang::Index::new(&clang, false, false);
             let mut entity_store = std::collections::HashMap::<String, clang::Entity<'_>>::new();
             match rx.recv() {
                 Ok(Msg::ParseSourceCode(sender, path)) => {
