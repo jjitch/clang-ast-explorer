@@ -1,9 +1,19 @@
 use crate::interface::{AstEntityFull, AstEntityLite};
 
 #[derive(Debug)]
+enum ClangMsgLoopError {
+    // String field is deemed to be unused, but it's useful for debugging.
+    // So we allow dead_code warning here.
+    #[allow(dead_code)]
+    SendingResponseFailed(String),
+    InitializationError,
+}
+
+#[derive(Debug)]
 pub enum ClangEngineError {
-    InitializationError(String),
     PreviousTranslationUnitExist,
+    EntityIdExpired,
+    ParseSourceFailed { details: String },
 }
 
 type EngineCallResult<R> = Result<R, ClangEngineError>;
@@ -35,22 +45,18 @@ struct TranslationUnitSession<'i, 'tu> {
 }
 
 impl TranslationUnitSession<'_, '_> {
-    fn receive(&mut self, rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
+    fn receive(&mut self, rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangMsgLoopError> {
         loop {
             match rx.recv() {
                 Ok(Msg::ParseSourceCode(sender, _)) => {
                     sender
                         .send(Err(ClangEngineError::PreviousTranslationUnitExist))
-                        .map_err(|e| {
-                            ClangEngineError::InitializationError(format!(
-                                "Failed to send error: {:?}",
-                                e
-                            ))
-                        })?;
+                        .or(Err(ClangMsgLoopError::SendingResponseFailed(
+                            "ParseSourceCode".into(),
+                        )))?;
                 }
                 Ok(Msg::RevealEntity(sender, entity_id)) => {
                     if let Some(entity) = self.entity_store.get(&entity_id) {
-                        println!("Revealing entity: {:?}", entity);
                         // Implement logic to reveal the entity in the UI if needed
                         let mut children = vec![];
                         for child in entity.get_children() {
@@ -61,33 +67,20 @@ impl TranslationUnitSession<'_, '_> {
                                 kind: format!("{:?}", child.get_kind()),
                             });
                         }
-                        sender
-                            .send(Ok(AstEntityFull {
-                                properties: vec![],
-                                children,
-                            }))
-                            .map_err(|e| {
-                                ClangEngineError::InitializationError(format!(
-                                    "Failed to send reveal confirmation: {:?}",
-                                    e
-                                ))
-                            })?;
+                        sender.send(Ok(AstEntityFull {
+                            properties: vec![],
+                            children,
+                        }))
                     } else {
-                        sender
-                            .send(Err(ClangEngineError::InitializationError(
-                                "Entity not found".into(),
-                            )))
-                            .map_err(|e| {
-                                ClangEngineError::InitializationError(format!(
-                                    "Failed to send error: {:?}",
-                                    e
-                                ))
-                            })?;
+                        sender.send(Err(ClangEngineError::EntityIdExpired))
                     }
+                    .or(Err(ClangMsgLoopError::SendingResponseFailed(
+                        format!("RevealEntity: {:?}", entity_id),
+                    )))?;
                 }
                 Ok(Msg::AbortTranslationUnit(sender)) => {
                     sender.send(Ok(())).map_err(|e| {
-                        ClangEngineError::InitializationError(format!(
+                        ClangMsgLoopError::SendingResponseFailed(format!(
                             "Failed to send abort confirmation: {:?}",
                             e
                         ))
@@ -104,19 +97,27 @@ impl TranslationUnitSession<'_, '_> {
 struct ClangReceiver;
 
 impl ClangReceiver {
-    fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
-        let clang = clang::Clang::new().map_err(ClangEngineError::InitializationError)?;
+    fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangMsgLoopError> {
+        let clang = clang::Clang::new().or(Err(ClangMsgLoopError::InitializationError))?;
         loop {
             match rx.recv() {
                 Ok(Msg::ParseSourceCode(sender, path)) => {
                     let index = clang::Index::new(&clang, false, false);
+                    let tu = if let Ok(tu) = index.parser(&path).arguments(&["-std=c++17"]).parse()
+                    {
+                        tu
+                    } else {
+                        sender
+                            .send(Err(ClangEngineError::ParseSourceFailed {
+                                details: format!("Failed to parse source file: {path:?}"),
+                            }))
+                            .or(Err(ClangMsgLoopError::SendingResponseFailed(format!(
+                                "Failed to send parse error: {path:?}"
+                            ))))?;
+                        continue;
+                    };
                     let mut entity_store =
                         std::collections::HashMap::<String, clang::Entity<'_>>::new();
-                    let tu = index
-                        .parser(&path)
-                        .arguments(&["-std=c++17"])
-                        .parse()
-                        .map_err(|e| ClangEngineError::InitializationError(format!("{:?}", e)))?;
                     let entity = tu.get_entity();
                     let new_id = uuid::Uuid::new_v4().to_string();
                     entity_store.insert(new_id.clone(), entity);
@@ -125,41 +126,39 @@ impl ClangReceiver {
                             id: new_id,
                             kind: format!("{:?}", entity.get_kind()),
                         }))
-                        .map_err(|e| {
-                            ClangEngineError::InitializationError(format!(
-                                "Failed to send entity ID: {:?}",
-                                e
-                            ))
-                        })?;
+                        .or(Err(ClangMsgLoopError::SendingResponseFailed(format!(
+                            "Failed to send entity: {path:?}"
+                        ))))?;
                     let mut session = TranslationUnitSession {
                         entity_store,
                         tu: &tu,
                     };
                     session.receive(rx)?;
                 }
-                Ok(Msg::RevealEntity(sender, _entity_id)) => {
-                    sender
-                        .send(Err(ClangEngineError::InitializationError(
-                            "No active translation unit".into(),
-                        )))
-                        .map_err(|e| {
-                            ClangEngineError::InitializationError(format!(
-                                "Failed to send error: {:?}",
-                                e
-                            ))
-                        })?;
+                Ok(Msg::RevealEntity(sender, entity_id)) => {
+                    sender.send(Err(ClangEngineError::EntityIdExpired)).or(Err(
+                        ClangMsgLoopError::SendingResponseFailed(format!(
+                            "RevealEntity without TU: {:?}",
+                            entity_id
+                        )),
+                    ))?;
                 }
                 Ok(Msg::AbortTranslationUnit(sender)) => {
-                    sender.send(Ok(())).map_err(|e| {
-                        ClangEngineError::InitializationError(format!(
-                            "Failed to send abort confirmation: {:?}",
-                            e
-                        ))
-                    })?;
+                    sender
+                        .send(Ok(()))
+                        .or(Err(ClangMsgLoopError::SendingResponseFailed(
+                            "AbortTranslationUnit without TU".into(),
+                        )))?;
+                    break;
                 }
-                Err(_) => {}
+                Err(e) => {
+                    return Err(ClangMsgLoopError::SendingResponseFailed(format!(
+                        "Channel receive error: {e:?}"
+                    )));
+                }
             }
         }
+        Ok(())
     }
 }
 
@@ -180,7 +179,7 @@ pub fn spawn_engine() -> EngineHandle {
     let (tx, rx) = std::sync::mpsc::channel::<Msg>();
     std::thread::spawn(move || {
         while let Err(e) = ClangReceiver::receive(&rx) {
-            eprintln!("Error receiving message: {:?}", e);
+            log::error!("An error occurred in the clang engine message loop: {e:?}");
         }
     });
     EngineHandle(tx)
