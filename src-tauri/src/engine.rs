@@ -36,6 +36,7 @@ pub enum Msg {
         tokio::sync::oneshot::Sender<EngineCallResult<AstEntityFull>>,
         String,
     ),
+    ExistTranslationUnit(tokio::sync::oneshot::Sender<EngineCallResult<bool>>),
     AbortTranslationUnit(tokio::sync::oneshot::Sender<EngineCallResult<()>>),
 }
 
@@ -77,6 +78,14 @@ impl TranslationUnitSession<'_> {
                     .or(Err(ClangMsgLoopError::SendingResponseFailed(
                         format!("RevealEntity: {:?}", entity_id),
                     )))?;
+                }
+                Ok(Msg::ExistTranslationUnit(sender)) => {
+                    sender.send(Ok(true)).map_err(|e| {
+                        ClangMsgLoopError::SendingResponseFailed(format!(
+                            "Failed to send TU existence: {:?}",
+                            e
+                        ))
+                    })?;
                 }
                 Ok(Msg::AbortTranslationUnit(sender)) => {
                     sender.send(Ok(())).map_err(|e| {
@@ -140,6 +149,13 @@ impl ClangReceiver {
                             entity_id
                         )),
                     ))?;
+                }
+                Ok(Msg::ExistTranslationUnit(sender)) => {
+                    sender
+                        .send(Ok(false))
+                        .or(Err(ClangMsgLoopError::SendingResponseFailed(
+                            "ExistTranslationUnit without TU".into(),
+                        )))?;
                 }
                 Ok(Msg::AbortTranslationUnit(sender)) => {
                     sender

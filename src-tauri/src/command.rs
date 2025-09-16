@@ -13,6 +13,18 @@ pub async fn parse_source(
     let mut file = std::fs::File::create(&source_file).map_err(|e| e.to_string())?;
     file.write_all(source_code.as_bytes())
         .map_err(|e| e.to_string())?;
+    if app_state
+        .engine_handle
+        .call(|tx| crate::engine::Msg::ExistTranslationUnit(tx))
+        .await
+        .unwrap_or(false)
+    {
+        app_state
+            .engine_handle
+            .call(|tx| crate::engine::Msg::AbortTranslationUnit(tx))
+            .await
+            .map_err(|e| format!("Error aborting previous TU: {:?}", e))?;
+    }
     let res = app_state
         .engine_handle
         .call(|tx| crate::engine::Msg::ParseSourceCode(tx, source_file))
