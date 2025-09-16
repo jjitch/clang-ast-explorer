@@ -3,6 +3,7 @@ use crate::interface::{AstEntityFull, AstEntityLite};
 #[derive(Debug)]
 pub enum ClangEngineError {
     InitializationError(String),
+    PreviousTranslationUnitExist,
 }
 
 type EngineCallResult<R> = Result<R, ClangEngineError>;
@@ -25,50 +26,41 @@ pub enum Msg {
         tokio::sync::oneshot::Sender<EngineCallResult<AstEntityFull>>,
         String,
     ),
+    AbortTranslationUnit(tokio::sync::oneshot::Sender<EngineCallResult<()>>),
 }
 
-struct ClangReceiver;
+struct TranslationUnitSession<'i, 'tu> {
+    entity_store: std::collections::HashMap<String, clang::Entity<'i>>,
+    tu: &'tu clang::TranslationUnit<'i>,
+}
 
-impl ClangReceiver {
-    fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
-        let clang = clang::Clang::new().map_err(ClangEngineError::InitializationError)?;
+impl TranslationUnitSession<'_, '_> {
+    fn receive(&mut self, rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
         loop {
-            let index = clang::Index::new(&clang, false, false);
-            let mut entity_store = std::collections::HashMap::<String, clang::Entity<'_>>::new();
             match rx.recv() {
-                Ok(Msg::ParseSourceCode(sender, path)) => {
-                    let tu = index
-                        .parser(&path)
-                        .arguments(&["-std=c++17"])
-                        .parse()
-                        .map_err(|e| ClangEngineError::InitializationError(format!("{:?}", e)))?;
-                    let entity = tu.get_entity();
-                    let new_id = uuid::Uuid::new_v4().to_string();
-                    entity_store.insert(new_id.clone(), entity);
+                Ok(Msg::ParseSourceCode(sender, _)) => {
                     sender
-                        .send(Ok(AstEntityLite {
-                            id: new_id,
-                            kind: format!("{:?}", entity.get_kind()),
-                        }))
+                        .send(Err(ClangEngineError::PreviousTranslationUnitExist))
                         .map_err(|e| {
                             ClangEngineError::InitializationError(format!(
-                                "Failed to send entity ID: {:?}",
+                                "Failed to send error: {:?}",
                                 e
                             ))
                         })?;
                 }
                 Ok(Msg::RevealEntity(sender, entity_id)) => {
-                    if let Some(entity) = entity_store.get(&entity_id) {
+                    if let Some(entity) = self.entity_store.get(&entity_id) {
                         println!("Revealing entity: {:?}", entity);
                         // Implement logic to reveal the entity in the UI if needed
-                        let children = entity
-                            .get_children()
-                            .iter()
-                            .map(|child| AstEntityLite {
-                                id: uuid::Uuid::new_v4().to_string(),
+                        let mut children = vec![];
+                        for child in entity.get_children() {
+                            let child_id = uuid::Uuid::new_v4().to_string();
+                            self.entity_store.insert(child_id.clone(), child);
+                            children.push(AstEntityLite {
+                                id: child_id,
                                 kind: format!("{:?}", child.get_kind()),
-                            })
-                            .collect::<Vec<_>>();
+                            });
+                        }
                         sender
                             .send(Ok(AstEntityFull {
                                 properties: vec![],
@@ -92,6 +84,78 @@ impl ClangReceiver {
                                 ))
                             })?;
                     }
+                }
+                Ok(Msg::AbortTranslationUnit(sender)) => {
+                    sender.send(Ok(())).map_err(|e| {
+                        ClangEngineError::InitializationError(format!(
+                            "Failed to send abort confirmation: {:?}",
+                            e
+                        ))
+                    })?;
+                    break;
+                }
+                Err(_) => {}
+            }
+        }
+        Ok(())
+    }
+}
+
+struct ClangReceiver;
+
+impl ClangReceiver {
+    fn receive(rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangEngineError> {
+        let clang = clang::Clang::new().map_err(ClangEngineError::InitializationError)?;
+        loop {
+            match rx.recv() {
+                Ok(Msg::ParseSourceCode(sender, path)) => {
+                    let index = clang::Index::new(&clang, false, false);
+                    let mut entity_store =
+                        std::collections::HashMap::<String, clang::Entity<'_>>::new();
+                    let tu = index
+                        .parser(&path)
+                        .arguments(&["-std=c++17"])
+                        .parse()
+                        .map_err(|e| ClangEngineError::InitializationError(format!("{:?}", e)))?;
+                    let entity = tu.get_entity();
+                    let new_id = uuid::Uuid::new_v4().to_string();
+                    entity_store.insert(new_id.clone(), entity);
+                    sender
+                        .send(Ok(AstEntityLite {
+                            id: new_id,
+                            kind: format!("{:?}", entity.get_kind()),
+                        }))
+                        .map_err(|e| {
+                            ClangEngineError::InitializationError(format!(
+                                "Failed to send entity ID: {:?}",
+                                e
+                            ))
+                        })?;
+                    let mut session = TranslationUnitSession {
+                        entity_store,
+                        tu: &tu,
+                    };
+                    session.receive(rx)?;
+                }
+                Ok(Msg::RevealEntity(sender, _entity_id)) => {
+                    sender
+                        .send(Err(ClangEngineError::InitializationError(
+                            "No active translation unit".into(),
+                        )))
+                        .map_err(|e| {
+                            ClangEngineError::InitializationError(format!(
+                                "Failed to send error: {:?}",
+                                e
+                            ))
+                        })?;
+                }
+                Ok(Msg::AbortTranslationUnit(sender)) => {
+                    sender.send(Ok(())).map_err(|e| {
+                        ClangEngineError::InitializationError(format!(
+                            "Failed to send abort confirmation: {:?}",
+                            e
+                        ))
+                    })?;
                 }
                 Err(_) => {}
             }
