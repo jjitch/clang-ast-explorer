@@ -12,7 +12,11 @@ export const mock: TauriIF = {
       console.log("Mocking parse_source...");
       setTimeout(() => {
         console.log("1 second passed, dispatching ast-ready event...");
-        emit("ast-ready", { id: "mock-id", kind: "mock-kind" });
+        emit("ast-ready", {
+          id: "mock-id",
+          kind: "mock-kind",
+          display_name: "Mock Display Name",
+        });
         resolve(null);
       }, 1000);
     });
@@ -23,9 +27,13 @@ export const mock: TauriIF = {
       const id = args.entityId;
       const children = [];
       for (let i = 0; i < 3; i++) {
-        children.push({ id: `${id}/${i}`, kind: "mock-kind" });
+        children.push({
+          id: `${id}/${i}`,
+          kind: "mock-kind",
+          display_name: `Mock Child ${i}`,
+        });
       }
-      resolve({ id, kind: "mock-kind", children });
+      resolve({ children });
     });
   },
 };

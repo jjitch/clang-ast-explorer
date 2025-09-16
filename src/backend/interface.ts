@@ -7,8 +7,6 @@ export type RevealEntityArg = {
 };
 
 export type AstEntityFull = {
-  id: string;
-  kind: string;
   children: AstEntityLite[];
 };
 
@@ -26,6 +24,7 @@ export type TauriCommands = {
 export type AstEntityLite = {
   id: string;
   kind: string;
+  display_name: string;
 };
 
 export type EventPayload = {

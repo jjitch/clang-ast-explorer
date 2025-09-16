@@ -4,6 +4,7 @@ use serde::Serialize;
 pub struct AstEntityLite {
     pub id: String,
     pub kind: String,
+    pub display_name: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

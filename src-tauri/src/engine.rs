@@ -64,6 +64,7 @@ impl TranslationUnitSession<'_> {
                             children.push(AstEntityLite {
                                 id: child_id,
                                 kind: format!("{:?}", child.get_kind()),
+                                display_name: child.get_display_name().unwrap_or_default(),
                             });
                         }
                         sender.send(Ok(AstEntityFull {
@@ -124,6 +125,7 @@ impl ClangReceiver {
                         .send(Ok(AstEntityLite {
                             id: new_id,
                             kind: format!("{:?}", entity.get_kind()),
+                            display_name: entity.get_display_name().unwrap_or_default(),
                         }))
                         .or(Err(ClangMsgLoopError::SendingResponseFailed(format!(
                             "Failed to send entity: {path:?}"
