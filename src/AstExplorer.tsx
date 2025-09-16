@@ -39,7 +39,9 @@ export function AstExplorer() {
       <h1>AST Explorer</h1>
       {astState.id === "not-parsed" && <div>AST not started</div>}
       {astState.id === "parsing" && <div>Parsing AST...</div>}
-      {astState.id === "ready" && <AstNode node={astState.entity} />}
+      {astState.id === "ready" && (
+        <AstNode key={astState.entity.id} node={astState.entity} />
+      )}
       {astState.id === "error" && <div>Error: {astState.message}</div>}
       {astState.id !== "not-parsed" &&
         astState.id !== "parsing" &&

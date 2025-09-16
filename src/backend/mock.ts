@@ -1,3 +1,4 @@
+import { SHA1 } from "crypto-es";
 import type { EventPayload, RevealEntityArg, TauriCommands } from "./interface";
 
 type TauriIF = {
@@ -7,13 +8,14 @@ type TauriIF = {
 };
 
 export const mock: TauriIF = {
-  parse_source: (_args: { sourceCode: string }) => {
+  parse_source: (args: { sourceCode: string }) => {
     return new Promise((resolve) => {
       console.log("Mocking parse_source...");
+      const hash = SHA1(args.sourceCode).toString();
       setTimeout(() => {
         console.log("1 second passed, dispatching ast-ready event...");
         emit("ast-ready", {
-          id: "mock-id",
+          id: hash,
           kind: "mock-kind",
           display_name: "Mock Display Name",
         });
