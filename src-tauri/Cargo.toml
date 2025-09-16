@@ -25,6 +25,7 @@ serde_json = "1"
 clang = "2.0.0"
 tokio = { version = "1.47.1", features = ["full"] }
 uuid = { version = "1.18.1", features = ["v4"] }
+log = "0.4.28"
 
 [dev-dependencies]
 tempdir = "0.3.7"
