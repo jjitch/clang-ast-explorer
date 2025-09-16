@@ -29,7 +29,9 @@ function App() {
       </button>
       <div style={{ display: "flex", gap: "20px", height: "100%" }}>
         <Editor ref={editorRef} />
-        <AstExplorer />
+        <ul>
+          <AstExplorer />
+        </ul>
       </div>
     </div>
   );
