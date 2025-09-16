@@ -39,12 +39,11 @@ pub enum Msg {
     AbortTranslationUnit(tokio::sync::oneshot::Sender<EngineCallResult<()>>),
 }
 
-struct TranslationUnitSession<'i, 'tu> {
-    entity_store: std::collections::HashMap<String, clang::Entity<'i>>,
-    tu: &'tu clang::TranslationUnit<'i>,
+struct TranslationUnitSession<'tu> {
+    entity_store: std::collections::HashMap<String, clang::Entity<'tu>>,
 }
 
-impl TranslationUnitSession<'_, '_> {
+impl TranslationUnitSession<'_> {
     fn receive(&mut self, rx: &std::sync::mpsc::Receiver<Msg>) -> Result<(), ClangMsgLoopError> {
         loop {
             match rx.recv() {
@@ -129,10 +128,7 @@ impl ClangReceiver {
                         .or(Err(ClangMsgLoopError::SendingResponseFailed(format!(
                             "Failed to send entity: {path:?}"
                         ))))?;
-                    let mut session = TranslationUnitSession {
-                        entity_store,
-                        tu: &tu,
-                    };
+                    let mut session = TranslationUnitSession { entity_store };
                     session.receive(rx)?;
                 }
                 Ok(Msg::RevealEntity(sender, entity_id)) => {
