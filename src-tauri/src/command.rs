@@ -18,21 +18,15 @@ pub async fn parse_source(
         .call(|tx| crate::engine::Msg::ParseSourceCode(tx, source_file))
         .await;
     match res {
-        Ok(entity_lite) => {
-            match app_handle.emit_to(
+        Ok(entity_lite) => app_handle
+            .emit_to(
                 tauri::EventTarget::WebviewWindow {
                     label: "main".into(),
                 },
                 "ast-ready",
                 entity_lite,
-            ) {
-                Ok(_) => {
-                    println!("Emitted AST ready event to window");
-                }
-                Err(e) => eprintln!("Error emitting AST ready event to window: {:?}", e),
-            }
-            Ok(())
-        }
+            )
+            .map_err(|e| format!("Error emitting AST ready event to window: {:?}", e)),
         Err(e) => Err(format!("Error parsing source code: {:?}", e)),
     }
 }
