@@ -1,10 +1,12 @@
 import react from "react";
 import { AstExplorer } from "./AstExplorer";
 import { tauriInvoke } from "./backend/api";
-import { Editor, type EditorHandle } from "./Editor";
+import { TokenDecoEditor, type TokenDecoEditorRef } from "./TokenDecoEditor";
+
+// import { Editor, type EditorHandle } from "./Editor";
 
 function App() {
-  const editorRef = react.useRef<EditorHandle>(null);
+  const editorRef = react.useRef<TokenDecoEditorRef | null>(null);
 
   return (
     <div
@@ -19,7 +21,7 @@ function App() {
       <button
         type="button"
         onClick={() => {
-          const value = editorRef.current?.getValue();
+          const value = editorRef.current?.();
           if (value) {
             tauriInvoke("parse_source", { sourceCode: value });
           }
@@ -28,7 +30,7 @@ function App() {
         Process File
       </button>
       <div style={{ display: "flex", gap: "20px", height: "100%" }}>
-        <Editor ref={editorRef} />
+        <TokenDecoEditor ref={editorRef} filePath="inmemory://main.cpp" />
         <ul>
           <AstExplorer />
         </ul>
