@@ -20,7 +20,7 @@ export const mock: TauriIF = {
           display_name: "Mock Display Name",
         });
         resolve(null);
-      }, 1000);
+      }, 10);
     });
   },
   reveal_entity: (args: RevealEntityArg) => {
@@ -28,7 +28,7 @@ export const mock: TauriIF = {
       console.log("Mocking reveal_entity...");
       const id = args.entityId;
       const children = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 100; i++) {
         children.push({
           id: `${id}/${i}`,
           kind: "mock-kind",
