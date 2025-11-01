@@ -1,3 +1,4 @@
+import { Tree } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 import { AstNode } from "./AstNode";
 import { tauriListen } from "./backend/api";
@@ -40,7 +41,9 @@ export function AstExplorer() {
       {astState.id === "not-parsed" && <div>AST not started</div>}
       {astState.id === "parsing" && <div>Parsing AST...</div>}
       {astState.id === "ready" && (
-        <AstNode key={astState.entity.id} node={astState.entity} />
+        <Tree>
+          <AstNode key={astState.entity.id} node={astState.entity} />
+        </Tree>
       )}
       {astState.id === "error" && <div>Error: {astState.message}</div>}
       {astState.id !== "not-parsed" &&

@@ -31,9 +31,7 @@ function App() {
       </button>
       <div style={{ display: "flex", gap: "20px", height: "100%" }}>
         <TokenDecoEditor ref={editorRef} filePath="inmemory://main.cpp" />
-        <ul>
-          <AstExplorer />
-        </ul>
+        <AstExplorer />
       </div>
     </div>
   );
