@@ -36,6 +36,8 @@ export function AstExplorer() {
     };
   }, []);
   return (
+    // "height: 95%" prevents the tree from being cut off.
+    // This is a workaround; ideal solution is being investigated.
     <div style={{ height: "95%", display: "flex", flexDirection: "column" }}>
       {astState.id === "not-parsed" && <div>AST not started</div>}
       {astState.id === "parsing" && <div>Parsing AST...</div>}
