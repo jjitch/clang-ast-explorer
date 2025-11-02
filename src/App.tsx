@@ -1,4 +1,5 @@
 import react from "react";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { AstExplorer } from "./AstExplorer";
 import { tauriInvoke } from "./backend/api";
 import { TokenDecoEditor, type TokenDecoEditorRef } from "./TokenDecoEditor";
@@ -29,10 +30,15 @@ function App() {
       >
         Process File
       </button>
-      <div style={{ display: "flex", gap: "20px", height: "100%" }}>
-        <TokenDecoEditor ref={editorRef} filePath="inmemory://main.cpp" />
-        <AstExplorer />
-      </div>
+      <PanelGroup direction="horizontal" autoSaveId="main-panel-group">
+        <Panel>
+          <TokenDecoEditor ref={editorRef} filePath="inmemory://main.cpp" />
+        </Panel>
+        <PanelResizeHandle style={{ width: "5px" }} />
+        <Panel>
+          <AstExplorer />
+        </Panel>
+      </PanelGroup>
     </div>
   );
 }

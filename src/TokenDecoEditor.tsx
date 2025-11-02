@@ -30,7 +30,5 @@ export const TokenDecoEditor = forwardRef<
       model = monacoInstance.editor.createModel("", "cpp", uri);
     }
   };
-  return (
-    <Editor language="cpp" theme="vs-dark" onMount={onMount} width={"50vw"} />
-  );
+  return <Editor language="cpp" theme="vs-dark" onMount={onMount} />;
 });
