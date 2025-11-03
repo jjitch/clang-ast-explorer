@@ -13,6 +13,7 @@ pub type AppState = tokio::sync::Mutex<AppStateRaw>;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             app.manage(AppState::new(AppStateRaw {
                 engine_handle: engine::spawn_engine(),
