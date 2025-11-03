@@ -7,6 +7,7 @@ export type RevealEntityArg = {
 };
 
 export type AstEntityFull = {
+  properties: Array<[string, string]>;
   children: AstEntityLite[];
 };
 

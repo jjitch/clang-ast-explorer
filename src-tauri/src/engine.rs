@@ -58,6 +58,15 @@ impl TranslationUnitSession<'_> {
                 Ok(Msg::RevealEntity(sender, entity_id)) => {
                     if let Some(entity) = self.entity_store.get(&entity_id) {
                         // Implement logic to reveal the entity in the UI if needed
+                        let mut properties = vec![];
+                        // Aquiring properties starts, but this is just a trial and subject to change.
+                        if let Some(name) = entity.get_name() {
+                            properties.push((String::from("name"), name));
+                        }
+                        if let Some(ty) = entity.get_type() {
+                            properties
+                                .push((String::from("Type>display_name"), ty.get_display_name()));
+                        }
                         let mut children = vec![];
                         for child in entity.get_children() {
                             let child_id = uuid::Uuid::new_v4().to_string();
@@ -69,7 +78,7 @@ impl TranslationUnitSession<'_> {
                             });
                         }
                         sender.send(Ok(AstEntityFull {
-                            properties: vec![],
+                            properties,
                             children,
                         }))
                     } else {
