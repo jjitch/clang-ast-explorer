@@ -35,7 +35,10 @@ export const mock: TauriIF = {
           display_name: `Mock Child ${i}`,
         });
       }
-      resolve({ children });
+      resolve({
+        properties: [["prop_name", "prop_value"]],
+        children,
+      });
     });
   },
 };
