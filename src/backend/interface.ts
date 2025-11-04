@@ -28,6 +28,12 @@ export type AstEntityLite = {
   display_name: string;
 };
 
+export type SourceCode = {
+  path: string;
+  content: string;
+};
+
 export type EventPayload = {
   "ast-ready": AstEntityLite;
+  "file-picked": SourceCode;
 };

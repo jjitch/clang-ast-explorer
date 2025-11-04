@@ -1,5 +1,24 @@
 use tauri::Emitter;
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, FilePath};
+
+use std::io::Read;
+
+use crate::interface::SourceCode;
+
+fn open_file(file_path: FilePath) -> Result<SourceCode, String> {
+    let path = file_path
+        .into_path()
+        .map_err(|e| format!("Selected file path can't be converted into file path. {e}"))?;
+    let mut file =
+        std::fs::File::open(&path).map_err(|e| format!("Selected file can't be open. {e}"))?;
+    let mut content = String::new();
+    file.read_to_string(&mut content)
+        .map_err(|e| format!("File content can't be read. {e}"))?;
+    Ok(SourceCode {
+        path: path.into_os_string().into_string().unwrap(),
+        content,
+    })
+}
 
 pub fn build_menu(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let file_menu = tauri::menu::SubmenuBuilder::new(app, "File")
@@ -14,20 +33,17 @@ pub fn build_menu(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::
         move |app_handle: &tauri::AppHandle, event| match event.id().0.as_str() {
             "open" => {
                 if let Some(file_path) = app_handle.dialog().file().blocking_pick_file() {
-                    if let Err(e) = app_handle.emit_to(
-                        tauri::EventTarget::labeled("main"),
-                        "file-picked",
-                        match &file_path {
-                            tauri_plugin_dialog::FilePath::Url(url) => url.to_string(),
-                            tauri_plugin_dialog::FilePath::Path(path) => {
-                                format!("file:///{}", path.to_string_lossy())
-                            }
-                        },
-                    ) {
-                        log::error!(
-                            "File ({:?}) has been selected, but failed to convey to UI. {e}",
-                            file_path.as_path()
-                        );
+                    match open_file(file_path) {
+                        Ok(source_code) => app_handle
+                            .emit_to(
+                                tauri::EventTarget::labeled("main"),
+                                "file-picked",
+                                source_code,
+                            )
+                            .unwrap_or_else(|e| log::error!("{e}")),
+                        Err(e) => {
+                            log::error!("{e}");
+                        }
                     }
                 }
             }

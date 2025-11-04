@@ -12,3 +12,9 @@ pub struct AstEntityFull {
     pub properties: Vec<(String, String)>,
     pub children: Vec<AstEntityLite>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SourceCode {
+    pub path: String,
+    pub content: String,
+}
