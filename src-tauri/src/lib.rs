@@ -1,6 +1,7 @@
 pub mod command;
 pub mod engine;
 pub mod interface;
+pub mod menu;
 
 use tauri::Manager;
 
@@ -18,6 +19,7 @@ pub fn run() {
             app.manage(AppState::new(AppStateRaw {
                 engine_handle: engine::spawn_engine(),
             }));
+            menu::build_menu(app)?;
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
