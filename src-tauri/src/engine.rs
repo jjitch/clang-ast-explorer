@@ -67,6 +67,22 @@ impl TranslationUnitSession<'_> {
                             properties
                                 .push((String::from("Type>display_name"), ty.get_display_name()));
                         }
+
+                        let source_range = {
+                            if let Some(range) = entity.get_range() {
+                                let start = range.get_start();
+                                let end = range.get_end();
+                                Some(crate::interface::SourceRange {
+                                    start_line: start.get_file_location().line as i64,
+                                    start_column: start.get_file_location().column as i64,
+                                    end_line: end.get_file_location().line as i64,
+                                    end_column: end.get_file_location().column as i64,
+                                })
+                            } else {
+                                None
+                            }
+                        };
+
                         let mut children = vec![];
                         for child in entity.get_children() {
                             let child_id = uuid::Uuid::new_v4().to_string();
@@ -80,6 +96,7 @@ impl TranslationUnitSession<'_> {
                         sender.send(Ok(AstEntityFull {
                             properties,
                             children,
+                            source_range,
                         }))
                     } else {
                         sender.send(Err(ClangEngineError::EntityIdExpired))

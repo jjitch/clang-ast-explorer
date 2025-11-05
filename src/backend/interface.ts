@@ -6,9 +6,17 @@ export type RevealEntityArg = {
   entityId: string;
 };
 
+export type SourceRange = {
+  start_line: number;
+  start_column: number;
+  end_line: number;
+  end_column: number;
+};
+
 export type AstEntityFull = {
   properties: Array<[string, string]>;
   children: AstEntityLite[];
+  source_range: SourceRange | null;
 };
 
 export type TauriCommands = {
