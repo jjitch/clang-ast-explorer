@@ -3,6 +3,7 @@ import type * as monaco from "monaco-editor";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 
 import "./TokenDecoEditor.css";
+import type { SourceRange } from "./backend/interface";
 
 type TokenDecoEditorProps = {
   filePath: string | "inmemory://main.cpp";
@@ -11,7 +12,7 @@ type TokenDecoEditorProps = {
 
 export type TokenDecoEditorRef = {
   getValue: () => string;
-  setHighlightedRange: (range: monaco.IRange) => void;
+  setHighlightedRange: (range: SourceRange) => void;
 };
 
 export const TokenDecoEditor = forwardRef<
@@ -22,7 +23,7 @@ export const TokenDecoEditor = forwardRef<
   const monacoRef = useRef<typeof monaco | null>(null);
   const decoIdsRef = useRef<string[]>([]);
 
-  const setHighlightedRange = (range: monaco.IRange) => {
+  const setHighlightedRange = (range: SourceRange) => {
     const editor = editorRef.current;
     const monacoInstance = monacoRef.current;
     if (!editor || !monacoInstance) return;
@@ -32,7 +33,12 @@ export const TokenDecoEditor = forwardRef<
 
     decoIdsRef.current = model.deltaDecorations(decoIdsRef.current, [
       {
-        range,
+        range: new monacoInstance.Range(
+          range.start_line,
+          range.start_column,
+          range.end_line,
+          range.end_column,
+        ),
         options: { inlineClassName: "myLineDecoration" },
       },
     ]);

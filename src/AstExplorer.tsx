@@ -2,7 +2,7 @@ import { Tree } from "@fluentui/react-components";
 import { useEffect, useState } from "react";
 import { AstNode } from "./AstNode";
 import { tauriListen } from "./backend/api";
-import type { AstEntityLite } from "./backend/interface";
+import type { AstEntityLite, SourceRange } from "./backend/interface";
 
 type AstParsing = {
   id: "parsing";
@@ -24,7 +24,11 @@ type AstError = {
 
 type AstState = AstNotParsed | AstParsing | AstReady | AstError;
 
-export function AstExplorer() {
+type AstExplorerProps = {
+  highlightSourceRange: (range: SourceRange) => void;
+};
+
+export function AstExplorer({ highlightSourceRange }: AstExplorerProps) {
   const [astState, setAstState] = useState<AstState>({ id: "not-parsed" });
   useEffect(() => {
     const unmount = tauriListen("ast-ready", (event) => {
@@ -42,8 +46,16 @@ export function AstExplorer() {
       {astState.id === "not-parsed" && <div>AST not started</div>}
       {astState.id === "parsing" && <div>Parsing AST...</div>}
       {astState.id === "ready" && (
-        <Tree size="small" style={{ overflowY: "scroll", flexGrow: 1 }}>
-          <AstNode key={astState.entity.id} node={astState.entity} />
+        <Tree
+          size="small"
+          style={{ overflowY: "scroll", flexGrow: 1 }}
+          aria-label="abst-syntax-tree"
+        >
+          <AstNode
+            key={astState.entity.id}
+            node={astState.entity}
+            highlightSourceRange={highlightSourceRange}
+          />
         </Tree>
       )}
       {astState.id === "error" && <div>Error: {astState.message}</div>}

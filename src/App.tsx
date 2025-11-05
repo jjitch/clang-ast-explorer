@@ -2,7 +2,7 @@ import react, { useEffect } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { AstExplorer } from "./AstExplorer";
 import { tauriInvoke, tauriListen } from "./backend/api";
-import type { SourceCode } from "./backend/interface";
+import type { SourceCode, SourceRange } from "./backend/interface";
 import { TokenDecoEditor, type TokenDecoEditorRef } from "./TokenDecoEditor";
 
 // import { Editor, type EditorHandle } from "./Editor";
@@ -13,6 +13,9 @@ function App() {
     path: "inmemory://main.cpp",
     content: "",
   });
+  const handleHighlight = react.useCallback((range: SourceRange) => {
+    editorRef.current?.setHighlightedRange(range);
+  }, []);
   useEffect(() => {
     const unmount = tauriListen("file-picked", (event) => {
       setSourceCode(event.payload);
@@ -53,7 +56,7 @@ function App() {
         </Panel>
         <PanelResizeHandle style={{ width: "5px" }} />
         <Panel>
-          <AstExplorer />
+          <AstExplorer highlightSourceRange={handleHighlight} />
         </Panel>
       </PanelGroup>
     </div>
