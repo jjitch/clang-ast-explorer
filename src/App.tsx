@@ -35,7 +35,7 @@ function App() {
       <button
         type="button"
         onClick={() => {
-          const value = editorRef.current?.();
+          const value = editorRef.current?.getValue();
           if (value) {
             tauriInvoke("parse_source", { sourceCode: value });
           }
