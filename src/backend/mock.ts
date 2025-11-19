@@ -28,7 +28,7 @@ export const mock: TauriIF = {
       console.log("Mocking reveal_entity...");
       const id = args.entityId;
       const children = [];
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 3; i++) {
         children.push({
           id: `${id}/${i}`,
           kind: "mock-kind",
@@ -37,6 +37,12 @@ export const mock: TauriIF = {
       }
       resolve({
         properties: [["prop_name", "prop_value"]],
+        source_range: {
+          start_line: (id.match(/\//g)?.length || 0) + 1,
+          start_column: id.lastIndexOf("/") - 41,
+          end_line: (id.match(/\//g)?.length || 0) + 1,
+          end_column: id.lastIndexOf("/") - 35,
+        },
         children,
       });
     });
